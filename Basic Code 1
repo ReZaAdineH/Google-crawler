@@ -1,0 +1,52 @@
+crawler to do some espsific search in google
+
+import requests
+import csv
+from random import choice
+from time import sleep
+from bs4 import BeautifulSoup
+
+user_agents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.79 Safari/537.36 Edge/14.14393'
+]
+
+def google_search(keyword, num_results=100):
+    results = []
+    start = 0
+    while len(results) < num_results:
+        # Send GET request to Google search page
+        headers = {'User-Agent': choice(user_agents)}
+        url = f"https://www.google.com/search?q={keyword}&start={start}"
+        response = requests.get(url, headers=headers)
+        
+        # Check if request was successful
+        if response.status_code != 200:
+            print(f'Error: {response.status_code}')
+            break
+        
+        # Parse HTML and extract search result details
+        soup = BeautifulSoup(response.text, 'html.parser')
+        for item in soup.select('.g .r a'):
+            title = item.text
+            link = item.get('href')
+            results.append({'title': title, 'link': link})
+        
+        # Update pagination
+        start += 10
+        
+        # Sleep for a random amount of time to avoid overwhelming the server
+        sleep(5)
+    return results
+
+# Perform search and save results to CSV
+results = google_search("example keyword", num_results=100)
+with open('results.csv', 'w') as csvfile:
+    fieldnames = ['title', 'link']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(results)
+
+print(f'{len(results)} results saved to "results.csv"')
+
